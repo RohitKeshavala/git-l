@@ -3,10 +3,1029 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <meta name="description" content="Cyberpunk HUD 1-100 Numbers Explorer: Real-time telemetry, binary/hex conversion, and terminal sequence streaming.">
+    <title>CYBER_MATRIX // Numbers 1 to 100 Explorer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-void: #030712;
+            --bg-panel: rgba(10, 16, 31, 0.82);
+            --bg-card: rgba(15, 23, 42, 0.7);
+            --neon-cyan: #00f0ff;
+            --neon-pink: #f43f5e;
+            --neon-purple: #c084fc;
+            --neon-amber: #f59e0b;
+            --neon-emerald: #10b981;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-cyber: #38bdf8;
+            --border-neon: rgba(0, 240, 255, 0.22);
+            --border-glow: 0 0 15px rgba(0, 240, 255, 0.18);
+            --font-display: 'Orbitron', monospace, sans-serif;
+            --font-ui: 'Rajdhani', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-ui);
+            background-color: var(--bg-void);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 2rem 1.25rem 4rem;
+            position: relative;
+            overflow-x: hidden;
+            background-image: 
+                linear-gradient(to right, rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+                radial-gradient(circle at 50% 0%, rgba(192, 132, 252, 0.18), transparent 55%),
+                radial-gradient(circle at 90% 70%, rgba(0, 240, 255, 0.08), transparent 45%);
+            background-size: 40px 40px, 40px 40px, auto, auto;
+            background-attachment: fixed;
+            transition: background 0.4s ease;
+        }
+
+        /* Dynamic Theme Overrides for SYS Buttons */
+        body.theme-red {
+            --neon-cyan: #f43f5e;
+            --text-cyber: #fb7185;
+            --border-neon: rgba(244, 63, 94, 0.4);
+            --border-glow: 0 0 20px rgba(244, 63, 94, 0.35);
+            background-image: 
+                linear-gradient(to right, rgba(244, 63, 94, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(244, 63, 94, 0.05) 1px, transparent 1px),
+                radial-gradient(circle at 50% 0%, rgba(244, 63, 94, 0.28), transparent 55%),
+                radial-gradient(circle at 90% 70%, rgba(244, 63, 94, 0.15), transparent 45%);
+        }
+
+        body.theme-gold {
+            --neon-cyan: #fbbf24;
+            --text-cyber: #fde047;
+            --border-neon: rgba(251, 191, 36, 0.4);
+            --border-glow: 0 0 20px rgba(251, 191, 36, 0.35);
+            background-image: 
+                linear-gradient(to right, rgba(251, 191, 36, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(251, 191, 36, 0.05) 1px, transparent 1px),
+                radial-gradient(circle at 50% 0%, rgba(251, 191, 36, 0.28), transparent 55%),
+                radial-gradient(circle at 90% 70%, rgba(251, 191, 36, 0.15), transparent 45%);
+        }
+
+        /* Scanline Overlay */
+        body::before {
+            content: " ";
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            z-index: 99;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Top HUD Bar with Preserved/Restyled Buttons */
+        .hud-topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding: 0.75rem 1.25rem;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-neon);
+            border-radius: 8px;
+            clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+            margin-bottom: 2rem;
+            box-shadow: var(--border-glow);
+        }
+
+        .hud-status-badge {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--neon-cyan);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            letter-spacing: 0.05em;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--neon-cyan);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--neon-cyan);
+            animation: pulse-glow 1.8s infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 10px var(--neon-cyan); }
+            50% { opacity: 0.35; transform: scale(0.8); box-shadow: 0 0 2px var(--neon-cyan); }
+        }
+
+        /* Restyled Legacy Buttons */
+        .legacy-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .legacy-btn-red {
+            background: linear-gradient(135deg, rgba(184, 73, 73, 0.85), rgba(136, 19, 55, 0.9));
+            color: #ffffff;
+            border: 1px solid #f43f5e;
+            padding: 0.4rem 1rem;
+            font-family: var(--font-display);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+            clip-path: polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px);
+            transition: all 0.2s ease;
+            box-shadow: 0 0 10px rgba(244, 63, 94, 0.3);
+        }
+
+        .legacy-btn-gold {
+            background: linear-gradient(135deg, rgba(184, 164, 73, 0.85), rgba(161, 98, 7, 0.9));
+            color: #ffffff;
+            border: 1px solid #fbbf24;
+            padding: 0.4rem 1rem;
+            font-family: var(--font-display);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+            clip-path: polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px);
+            transition: all 0.2s ease;
+            box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+        }
+
+        .legacy-btn-cyan {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.85), rgba(14, 116, 144, 0.9));
+            color: #ffffff;
+            border: 1px solid #06b6d4;
+            padding: 0.4rem 0.9rem;
+            font-family: var(--font-display);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+            clip-path: polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px);
+            transition: all 0.2s ease;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.3);
+        }
+
+        .legacy-btn-cyan:hover, .legacy-btn-red:hover, .legacy-btn-gold:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.2);
+            box-shadow: 0 0 16px rgba(255, 255, 255, 0.4);
+        }
+
+        /* Header Area */
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .cyber-glitch-title {
+            font-family: var(--font-display);
+            font-size: clamp(1.8rem, 4vw, 3rem);
+            font-weight: 900;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #ffffff;
+            text-shadow: 0 0 14px var(--neon-cyan), 0 0 28px rgba(192, 132, 252, 0.4);
+            margin-bottom: 0.5rem;
+            transition: text-shadow 0.3s ease;
+        }
+
+        .cyber-subtext {
+            color: var(--text-cyber);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        /* HUD Telemetry Strip */
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.75rem;
+        }
+
+        .telemetry-card {
+            background: var(--bg-panel);
+            border: 1px solid rgba(0, 240, 255, 0.18);
+            border-left: 3px solid var(--neon-cyan);
+            border-radius: 6px;
+            padding: 1rem 1.25rem;
+            backdrop-filter: blur(10px);
+            box-shadow: inset 0 0 15px rgba(0, 240, 255, 0.04);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .telemetry-card:hover {
+            border-color: var(--neon-cyan);
+            transform: translateY(-2px);
+        }
+
+        .telemetry-label {
+            font-family: var(--font-display);
+            font-size: 0.72rem;
+            letter-spacing: 0.12em;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .telemetry-value {
+            font-family: var(--font-mono);
+            font-size: 1.45rem;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+        }
+
+        /* Hover Probe Box (Interactive Hex/Binary/Octal translator) */
+        .probe-panel {
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid var(--border-neon);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.75rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: inset 0 0 20px rgba(0, 240, 255, 0.05);
+        }
+
+        .probe-title {
+            font-family: var(--font-display);
+            font-size: 0.8rem;
+            color: var(--neon-purple);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .probe-readouts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.25rem;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+        }
+
+        .probe-item {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 0.3rem 0.75rem;
+            border-radius: 4px;
+        }
+
+        .probe-tag {
+            color: var(--neon-cyan);
+            font-weight: 700;
+            margin-right: 0.35rem;
+        }
+
+        .probe-val {
+            color: #ffffff;
+            font-weight: 500;
+        }
+
+        /* Action Control Station */
+        .controls-panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-neon);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--border-glow);
+        }
+
+        .btn-deck {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.85rem;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1.25rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        .cyber-btn {
+            font-family: var(--font-display);
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            padding: 0.7rem 1.4rem;
+            cursor: pointer;
+            border: none;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            clip-path: polygon(10px 0%, 100% 0%, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0% 100%, 0% 10px);
+        }
+
+        .cyber-btn-cyan {
+            background: linear-gradient(135deg, #00f0ff 0%, #0284c7 100%);
+            color: #030712;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+        }
+
+        .cyber-btn-purple {
+            background: linear-gradient(135deg, #c084fc 0%, #7e22ce 100%);
+            color: #ffffff;
+            box-shadow: 0 0 20px rgba(192, 132, 252, 0.3);
+        }
+
+        .cyber-btn-emerald {
+            background: linear-gradient(135deg, #10b981 0%, #0d9488 100%);
+            color: #ffffff;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.35);
+        }
+
+        .cyber-btn-outline {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--border-neon);
+            color: var(--neon-cyan);
+        }
+
+        .cyber-btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.2);
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.6);
+        }
+
+        .cyber-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Filter Chips */
+        .filter-deck {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .filter-tag {
+            font-family: var(--font-display);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-right: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        .cyber-chip {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            padding: 0.4rem 0.9rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .cyber-chip:hover {
+            border-color: var(--neon-cyan);
+            color: #ffffff;
+        }
+
+        .cyber-chip.active {
+            background: rgba(0, 240, 255, 0.15);
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+        }
+
+        /* Main Dual Workspace */
+        .cyber-workspace {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        @media (min-width: 950px) {
+            .cyber-workspace {
+                grid-template-columns: 1.55fr 1fr;
+            }
+        }
+
+        /* Matrix 1-100 Grid */
+        .matrix-container {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-neon);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--border-glow);
+        }
+
+        .matrix-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .matrix-title {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            letter-spacing: 0.1em;
+            color: #ffffff;
+        }
+
+        .numbers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(54px, 1fr));
+            gap: 0.5rem;
+            max-height: 540px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .numbers-grid::-webkit-scrollbar {
+            width: 5px;
+        }
+        .numbers-grid::-webkit-scrollbar-thumb {
+            background: var(--neon-cyan);
+            border-radius: 4px;
+            box-shadow: 0 0 6px var(--neon-cyan);
+        }
+
+        .cyber-card {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(10, 16, 31, 0.7);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #e2e8f0;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            user-select: none;
+        }
+
+        .cyber-card:hover {
+            transform: translateY(-3px) scale(1.08);
+            background: rgba(0, 240, 255, 0.2);
+            border-color: var(--neon-cyan);
+            color: #ffffff;
+            box-shadow: 0 0 18px rgba(0, 240, 255, 0.5);
+            z-index: 5;
+        }
+
+        .cyber-card.prime-pip::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 5px;
+            height: 5px;
+            background-color: var(--neon-purple);
+            border-radius: 50%;
+            box-shadow: 0 0 6px var(--neon-purple);
+        }
+
+        .cyber-card.stream-active {
+            background: linear-gradient(135deg, #00f0ff, #c084fc);
+            color: #000;
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.8);
+            transform: scale(1.1);
+        }
+
+        .cyber-card.filtered-out {
+            opacity: 0.15;
+            filter: grayscale(1);
+            transform: scale(0.95);
+        }
+
+        /* Cyber Terminal */
+        .terminal-panel {
+            background: #02040a;
+            border: 1px solid var(--border-neon);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+        }
+
+        .terminal-header {
+            background: #090e1a;
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+        }
+
+        .terminal-title-text {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--neon-cyan);
+            letter-spacing: 0.08em;
+        }
+
+        .terminal-content {
+            padding: 1.25rem;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: #a5f3fc;
+            max-height: 500px;
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            line-height: 1.6;
+        }
+
+        .terminal-content::-webkit-scrollbar {
+            width: 5px;
+        }
+        .terminal-content::-webkit-scrollbar-thumb {
+            background: rgba(0, 240, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        .log-row {
+            display: flex;
+            gap: 0.6rem;
+            animation: cyber-appear 0.15s ease-out;
+        }
+
+        .log-prefix {
+            color: #64748b;
+            user-select: none;
+        }
+        .log-num {
+            color: var(--neon-cyan);
+            font-weight: 700;
+        }
+        .log-sys {
+            color: var(--neon-pink);
+        }
+        .log-ok {
+            color: var(--neon-emerald);
+        }
+
+        @keyframes cyber-appear {
+            from { opacity: 0; transform: translateX(-4px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Toast HUD Message */
+        #hud-toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: rgba(10, 16, 31, 0.95);
+            border: 1px solid var(--neon-cyan);
+            color: #ffffff;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            padding: 0.85rem 1.4rem;
+            border-radius: 6px;
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.35);
+            transform: translateY(120px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 1000;
+        }
+        #hud-toast.active {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
 </head>
 <body>
-    <button style="background-color: rgb(184, 73, 73); color:white; border-radius: 10%; border: none; cursor: pointer;">Hello</button>
-    <button style="background-color: rgb(184, 164, 73); color:white; border-radius: 10%; border: none; cursor: pointer;">Hello</button>
+    <div class="container">
+        <!-- Top HUD Status & Restyled Legacy Buttons -->
+        <nav class="hud-topbar" aria-label="System Actions">
+            <div class="hud-status-badge">
+                <span class="status-dot"></span>
+                <span id="hud-status-text">STATUS: ONLINE // PROTOCOL_1_TO_100 [DEFAULT]</span>
+            </div>
+            <div class="legacy-actions">
+                <button id="legacy-btn-cyan" class="legacy-btn-cyan" onclick="setSystemCore('cyan')" title="Reset to Cyan Core">
+                    SYS // DEFAULT [CYAN]
+                </button>
+                <button id="legacy-btn-red" class="legacy-btn-red" onclick="setSystemCore('red')" title="Switch to Red Core">
+                    SYS // 01 [RED]
+                </button>
+                <button id="legacy-btn-gold" class="legacy-btn-gold" onclick="setSystemCore('gold')" title="Switch to Gold Core">
+                    SYS // 02 [GOLD]
+                </button>
+            </div>
+        </nav>
+
+        <!-- Header -->
+        <header>
+            <h1 class="cyber-glitch-title">CYBER_MATRIX // 1 TO 100</h1>
+            <p class="cyber-subtext">Quantum sequence generator &amp; console telemetry probe</p>
+        </header>
+
+        <!-- Telemetry Panel -->
+        <section class="telemetry-grid" aria-label="Live Telemetry">
+            <div class="telemetry-card">
+                <div class="telemetry-label">Active Units <span style="color:var(--neon-cyan);">[QTY]</span></div>
+                <div class="telemetry-value" id="hud-count">100 / 100</div>
+            </div>
+            <div class="telemetry-card">
+                <div class="telemetry-label">Sequence Sum <span style="color:var(--neon-emerald);">[SIGMA]</span></div>
+                <div class="telemetry-value" id="hud-sum">5,050</div>
+            </div>
+            <div class="telemetry-card">
+                <div class="telemetry-label">Average Value <span style="color:var(--neon-amber);">[MEAN]</span></div>
+                <div class="telemetry-value" id="hud-avg">50.50</div>
+            </div>
+            <div class="telemetry-card">
+                <div class="telemetry-label">Prime Density <span style="color:var(--neon-purple);">[PRM]</span></div>
+                <div class="telemetry-value" id="hud-primes">25 (25.0%)</div>
+            </div>
+        </section>
+
+        <!-- Dynamic Live Hover Translator Probe -->
+        <section class="probe-panel" aria-label="Unit Probe">
+            <div class="probe-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <span>HOVER PROBE TELEMETRY</span>
+            </div>
+            <div class="probe-readouts">
+                <div class="probe-item"><span class="probe-tag">DEC:</span><span class="probe-val" id="probe-dec">--</span></div>
+                <div class="probe-item"><span class="probe-tag">BIN:</span><span class="probe-val" id="probe-bin">--------</span></div>
+                <div class="probe-item"><span class="probe-tag">HEX:</span><span class="probe-val" id="probe-hex">0x--</span></div>
+                <div class="probe-item"><span class="probe-tag">OCT:</span><span class="probe-val" id="probe-oct">---</span></div>
+                <div class="probe-item"><span class="probe-tag">TYPE:</span><span class="probe-val" id="probe-type">STANDBY</span></div>
+            </div>
+        </section>
+
+        <!-- Command Controls -->
+        <section class="controls-panel" aria-label="Execution Station">
+            <div class="btn-deck">
+                <button id="btn-print-console" class="cyber-btn cyber-btn-cyan" onclick="print1To100()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                    EXEC // PRINT 1-100 TO CONSOLE
+                </button>
+                <button id="btn-stream-matrix" class="cyber-btn cyber-btn-purple" onclick="streamMatrixFeed()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    STREAM // SIMULATE SEQUENCE
+                </button>
+                <button id="btn-copy-array" class="cyber-btn cyber-btn-outline" onclick="copyArrayPayload()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    DUMP // JSON ARRAY
+                </button>
+                <button id="btn-print-hello" class="cyber-btn cyber-btn-emerald" onclick="printHello()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2z"></path></svg>
+                    ECHO // PRINT "HELLO"
+                </button>
+            </div>
+
+            <!-- Filters -->
+            <div class="filter-deck">
+                <span class="filter-tag">// FILTER PROTOCOL:</span>
+                <button class="cyber-chip active" id="filter-all" onclick="setFilter('all')">ALL [100]</button>
+                <button class="cyber-chip" id="filter-even" onclick="setFilter('even')">EVEN [50]</button>
+                <button class="cyber-chip" id="filter-odd" onclick="setFilter('odd')">ODD [50]</button>
+                <button class="cyber-chip" id="filter-prime" onclick="setFilter('prime')">PRIMES [25]</button>
+                <button class="cyber-chip" id="filter-mod5" onclick="setFilter('mod5')">MOD_5 [20]</button>
+            </div>
+        </section>
+
+        <!-- Main Workspace -->
+        <main class="cyber-workspace">
+            <!-- 100 Cards Matrix -->
+            <section class="matrix-container">
+                <div class="matrix-header">
+                    <h2 class="matrix-title">QUANTUM MATRIX GRID [001 - 100]</h2>
+                    <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--neon-purple);">
+                        ● Purple Pip = Prime
+                    </span>
+                </div>
+                <div class="numbers-grid" id="matrix-grid">
+                    <!-- 1 to 100 Cards built dynamically -->
+                </div>
+            </section>
+
+            <!-- Cyber Terminal Log -->
+            <section class="terminal-panel">
+                <div class="terminal-header">
+                    <div style="display:flex; gap:6px;">
+                        <span style="width:10px; height:10px; background:#ef4444; border-radius:50%;"></span>
+                        <span style="width:10px; height:10px; background:#f59e0b; border-radius:50%;"></span>
+                        <span style="width:10px; height:10px; background:#10b981; border-radius:50%;"></span>
+                    </div>
+                    <span class="terminal-title-text">node_stream.sh // live</span>
+                    <button onclick="clearCyberTerminal()" style="background:none; border:none; color:var(--text-secondary); font-family:var(--font-mono); font-size:0.75rem; cursor:pointer;">[CLEAR]</button>
+                </div>
+                <div class="terminal-content" id="cyber-terminal">
+                    <div class="log-row"><span class="log-prefix">&gt;</span> <span class="log-ok">SYSTEM INITIALIZED // WAITING FOR SEQUENCE EXECUTION...</span></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="hud-toast">SIGNAL SENT</div>
+
+    <script>
+        // Check Prime logic
+        function isPrime(n) {
+            if (n <= 1) return false;
+            if (n <= 3) return true;
+            if (n % 2 === 0 || n % 3 === 0) return false;
+            for (let i = 5; i * i <= n; i += 6) {
+                if (n % i === 0 || n % (i + 2) === 0) return false;
+            }
+            return true;
+        }
+
+        const grid = document.getElementById('matrix-grid');
+        const terminal = document.getElementById('cyber-terminal');
+        const hudToast = document.getElementById('hud-toast');
+
+        // Hover Probe elements
+        const probeDec = document.getElementById('probe-dec');
+        const probeBin = document.getElementById('probe-bin');
+        const probeHex = document.getElementById('probe-hex');
+        const probeOct = document.getElementById('probe-oct');
+        const probeType = document.getElementById('probe-type');
+
+        // Telemetry elements
+        const hudCount = document.getElementById('hud-count');
+        const hudSum = document.getElementById('hud-sum');
+        const hudAvg = document.getElementById('hud-avg');
+        const hudPrimes = document.getElementById('hud-primes');
+
+        // Initialize 100 cards
+        function buildMatrix() {
+            grid.innerHTML = '';
+            for (let i = 1; i <= 100; i++) {
+                const card = document.createElement('div');
+                card.className = 'cyber-card';
+                card.id = `unit-${i}`;
+                card.textContent = i;
+                card.dataset.val = i;
+                card.dataset.even = (i % 2 === 0);
+                card.dataset.odd = (i % 2 !== 0);
+                card.dataset.prime = isPrime(i);
+                card.dataset.mod5 = (i % 5 === 0);
+
+                if (isPrime(i)) {
+                    card.classList.add('prime-pip');
+                }
+
+                // Hover Probe
+                card.addEventListener('mouseenter', () => updateProbe(i));
+                card.addEventListener('mouseleave', () => resetProbe());
+
+                // Click inspection
+                card.addEventListener('click', () => {
+                    logCyberMsg(`UNIT #${i} PROBED: BIN=${Number(i).toString(2)} HEX=0x${Number(i).toString(16).toUpperCase()}`);
+                    console.log(`[CYBER_PROBE] Unit: ${i}, Even: ${i % 2 === 0}, Prime: ${isPrime(i)}`);
+                });
+
+                grid.appendChild(card);
+            }
+        }
+
+        function updateProbe(n) {
+            probeDec.textContent = n;
+            probeBin.textContent = Number(n).toString(2).padStart(8, '0');
+            probeHex.textContent = '0x' + Number(n).toString(16).toUpperCase().padStart(2, '0');
+            probeOct.textContent = Number(n).toString(8).padStart(3, '0');
+            
+            const types = [];
+            if (n % 2 === 0) types.push('EVEN'); else types.push('ODD');
+            if (isPrime(n)) types.push('PRIME');
+            if (n % 5 === 0) types.push('MOD_5');
+            probeType.textContent = types.join(' · ');
+        }
+
+        function resetProbe() {
+            probeDec.textContent = '--';
+            probeBin.textContent = '--------';
+            probeHex.textContent = '0x--';
+            probeOct.textContent = '---';
+            probeType.textContent = 'STANDBY';
+        }
+
+        // Print Hello function
+        function printHello() {
+            const greeting = "Hello, World!";
+            console.log("%c[ECHO_SERVICE] " + greeting, "color: #10b981; font-weight: bold; font-size: 14px;");
+
+            const row = document.createElement('div');
+            row.className = 'log-row';
+            row.innerHTML = `<span class="log-prefix">&gt;</span> <span class="log-ok">[ECHO_OUT]</span> <span style="color:#ffffff; font-weight:700;">&gt;&gt; ${greeting}</span>`;
+            terminal.appendChild(row);
+            terminal.scrollTop = terminal.scrollHeight;
+
+            showHudToast('ECHO: "' + greeting + '"');
+        }
+
+        // Print 1 to 100
+        function print1To100() {
+            console.clear();
+            console.log("%c[CYBER_MATRIX] INITIATING 1 TO 100 PRINT SEQUENCE...", "color:#00f0ff; font-weight:bold; font-size:14px;");
+            
+            terminal.innerHTML = '';
+            const t0 = performance.now();
+
+            for (let i = 1; i <= 100; i++) {
+                // Actual console print requirement
+                console.log(i);
+
+                // Live Terminal Output
+                const row = document.createElement('div');
+                row.className = 'log-row';
+                row.innerHTML = `<span class="log-prefix">[${String(i).padStart(3, '0')}]</span> <span class="log-num">&gt;&gt; ${i}</span> <span style="color:#64748b;">(0x${Number(i).toString(16).toUpperCase()})</span>`;
+                terminal.appendChild(row);
+            }
+
+            const duration = (performance.now() - t0).toFixed(2);
+            console.log(`%c[CYBER_MATRIX] SEQUENCE COMPLETE: 100 items streamed in ${duration}ms`, "color:#10b981; font-weight:bold;");
+
+            const doneRow = document.createElement('div');
+            doneRow.className = 'log-row';
+            doneRow.innerHTML = `<span class="log-prefix">&gt;</span> <span class="log-ok">✓ COMPLETE // 100 UNITS PRINTED TO CONSOLE (${duration}ms)</span>`;
+            terminal.appendChild(doneRow);
+            terminal.scrollTop = terminal.scrollHeight;
+
+            showHudToast("Streamed 1-100 to Developer Console (F12)!");
+        }
+
+        // Stream Matrix Animation
+        let streamTimer = null;
+        function streamMatrixFeed() {
+            if (streamTimer) clearInterval(streamTimer);
+            terminal.innerHTML = '';
+            document.querySelectorAll('.cyber-card').forEach(c => c.classList.remove('stream-active'));
+
+            let cur = 1;
+            streamTimer = setInterval(() => {
+                if (cur > 100) {
+                    clearInterval(streamTimer);
+                    const doneRow = document.createElement('div');
+                    doneRow.className = 'log-row';
+                    doneRow.innerHTML = `<span class="log-prefix">&gt;</span> <span class="log-ok">✓ STREAM COMPLETE [001 ... 100]</span>`;
+                    terminal.appendChild(doneRow);
+                    terminal.scrollTop = terminal.scrollHeight;
+                    return;
+                }
+
+                console.log(`[MATRIX_FEED] ${cur}`);
+                const el = document.getElementById(`unit-${cur}`);
+                if (el) {
+                    el.classList.add('stream-active');
+                    setTimeout(() => el.classList.remove('stream-active'), 250);
+                }
+
+                const row = document.createElement('div');
+                row.className = 'log-row';
+                row.innerHTML = `<span class="log-prefix">[${String(cur).padStart(3, '0')}]</span> <span class="log-num">&gt;&gt; ${cur}</span>`;
+                terminal.appendChild(row);
+                terminal.scrollTop = terminal.scrollHeight;
+
+                cur++;
+            }, 30);
+        }
+
+        // Filter Matrix
+        function setFilter(type) {
+            document.querySelectorAll('.cyber-chip').forEach(b => b.classList.remove('active'));
+            const activeChip = document.getElementById(`filter-${type}`);
+            if (activeChip) activeChip.classList.add('active');
+
+            const cards = document.querySelectorAll('.cyber-card');
+            let activeCount = 0;
+            let sum = 0;
+            let primes = 0;
+
+            cards.forEach(card => {
+                const val = parseInt(card.dataset.val, 10);
+                let match = false;
+                if (type === 'all') match = true;
+                else if (type === 'even') match = card.dataset.even === 'true';
+                else if (type === 'odd') match = card.dataset.odd === 'true';
+                else if (type === 'prime') match = card.dataset.prime === 'true';
+                else if (type === 'mod5') match = card.dataset.mod5 === 'true';
+
+                if (match) {
+                    card.classList.remove('filtered-out');
+                    activeCount++;
+                    sum += val;
+                    if (card.dataset.prime === 'true') primes++;
+                } else {
+                    card.classList.add('filtered-out');
+                }
+            });
+
+            // Update Telemetry Panel
+            hudCount.textContent = `${activeCount} / 100`;
+            hudSum.textContent = sum.toLocaleString();
+            hudAvg.textContent = activeCount > 0 ? (sum / activeCount).toFixed(2) : '0.00';
+            const primePct = activeCount > 0 ? ((primes / activeCount) * 100).toFixed(1) : '0.0';
+            hudPrimes.textContent = `${primes} (${primePct}%)`;
+
+            logCyberMsg(`FILTER APPLIED: ${type.toUpperCase()} [${activeCount} UNITS ACTIVE]`);
+        }
+
+        // System Core Switcher (Red, Gold, Cyan)
+        function setSystemCore(core) {
+            document.body.classList.remove('theme-red', 'theme-gold');
+            const statusText = document.getElementById('hud-status-text');
+            
+            if (core === 'red') {
+                document.body.classList.add('theme-red');
+                if (statusText) statusText.textContent = 'STATUS: ONLINE // SYS_CORE: RED_ALPHA [CRIMSON MATRIX]';
+                logCyberMsg('SYSTEM CORE ENGAGED: [RED_ALPHA] // CRIMSON DEFENSE MATRIX ACTIVE');
+                showHudToast('SYSTEM CORE: RED_ALPHA ACTIVATED');
+            } else if (core === 'gold') {
+                document.body.classList.add('theme-gold');
+                if (statusText) statusText.textContent = 'STATUS: ONLINE // SYS_CORE: GOLD_BETA [AMBER OVERCLOCK]';
+                logCyberMsg('SYSTEM CORE ENGAGED: [GOLD_BETA] // AMBER OVERCLOCK MATRIX ACTIVE');
+                showHudToast('SYSTEM CORE: GOLD_BETA ACTIVATED');
+            } else {
+                if (statusText) statusText.textContent = 'STATUS: ONLINE // PROTOCOL_1_TO_100 [DEFAULT]';
+                logCyberMsg('SYSTEM CORE RESET: [DEFAULT_CYAN] // STANDARD MATRIX RESTORED');
+                showHudToast('SYSTEM CORE: DEFAULT CYAN RESTORED');
+            }
+        }
+
+        // Backward-compatible triggerSysDiag
+        function triggerSysDiag(coreId, coreName) {
+            if (coreName && coreName.includes('RED')) {
+                setSystemCore('red');
+            } else if (coreName && coreName.includes('GOLD')) {
+                setSystemCore('gold');
+            } else {
+                setSystemCore('cyan');
+            }
+        }
+
+        function logCyberMsg(msg) {
+            const row = document.createElement('div');
+            row.className = 'log-row';
+            row.innerHTML = `<span class="log-prefix">&gt;</span> <span class="log-sys">${msg}</span>`;
+            terminal.appendChild(row);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function clearCyberTerminal() {
+            terminal.innerHTML = '<div class="log-row"><span class="log-prefix">&gt;</span> <span style="color:#64748b;">TERMINAL BUFFER CLEARED</span></div>';
+        }
+
+        function copyArrayPayload() {
+            const arr = Array.from({ length: 100 }, (_, i) => i + 1);
+            navigator.clipboard.writeText(JSON.stringify(arr, null, 2)).then(() => {
+                showHudToast("JSON payload copied to clipboard!");
+            });
+        }
+
+        function showHudToast(text) {
+            hudToast.textContent = text;
+            hudToast.classList.add('active');
+            setTimeout(() => hudToast.classList.remove('active'), 2500);
+        }
+
+        // Initialize on load
+        buildMatrix();
+    </script>
 </body>
 </html>
